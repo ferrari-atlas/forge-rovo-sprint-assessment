@@ -1,0 +1,101 @@
+app:
+  id: ari:cloud:ecosystem::app/ae893e65-6742-455d-b98a-28d09bbae4cb
+  runtime:
+    name: nodejs24.x
+    memoryMB: 256
+    architecture: arm64
+modules:
+  rovo:agent:
+    - key: sprint-assessment-agent
+      name: Sprint Assessment Agent
+      description: Retrieves board context, sprint issue data, and carry-over risk assessments from Jira Software
+      actions:
+        - get-board-context
+        - get-sprint-issues
+        - assess-sprint
+        - explain-drift
+      conversationStarters:
+        - Assess the active sprint
+        - Assess the next sprint for readiness
+        - Show me how to change the assessment criteria
+      prompt: resource:agent-prompts;agent-instructions.md
+  action:
+    - key: get-board-context
+      name: Get Board Context
+      description: Fetches comprehensive context for a Jira Software board including configuration, sprints, and backlog
+      actionVerb: GET
+      function: getBoardContext
+      inputs:
+        boardId:
+          title: Board Id
+          description: The ID of the Jira Software board to retrieve context for
+          required: false
+          type: integer
+    - key: get-sprint-issues
+      name: Get Sprint Issues
+      description: Fetches all issues in a sprint with their change history (changelog). If no sprintId is provided, returns available sprints for selection.
+      actionVerb: GET
+      function: getSprintIssues
+      inputs:
+        boardId:
+          title: Board Id
+          description: The ID of the Jira Software board
+          required: false
+          type: integer
+        sprintId:
+          title: Sprint Id
+          description: The ID of the specific sprint to retrieve issues for. If omitted, available sprints are listed for selection.
+          required: false
+          type: integer
+    - key: assess-sprint
+      name: Assess Sprint
+      description: Analyses a sprint for carry-over risk and readiness by parsing issue changelogs. If no sprintId is provided, returns available sprints for selection.
+      actionVerb: GET
+      function: assessSprint
+      inputs:
+        boardId:
+          title: Board Id
+          description: The ID of the Jira Software board
+          required: false
+          type: integer
+        sprintId:
+          title: Sprint Id
+          description: The ID of the specific sprint to assess. If omitted, available sprints are listed for selection.
+          required: false
+          type: integer
+        config:
+          title: Config
+          description: Optional YAML string to override default assessment thresholds. Deep-merged with defaults.
+          required: false
+          type: string
+    - key: explain-drift
+      name: Explain Drift
+      description: Investigates the probable cause of estimate drift for a specific issue by analysing scope changes in its changelog.
+      actionVerb: GET
+      function: explainDrift
+      inputs:
+        issueKey:
+          title: Issue Key
+          description: The key of the Jira issue to investigate (e.g. PROJ-123)
+          required: true
+          type: string
+  function:
+    - key: getBoardContext
+      handler: index.getBoardContext
+    - key: getSprintIssues
+      handler: index.getSprintIssues
+    - key: assessSprint
+      handler: index.assessSprint
+    - key: explainDrift
+      handler: index.explainDrift
+permissions:
+  scopes:
+    - read:board-scope:jira-software
+    - read:sprint:jira-software
+    - read:issue-details:jira
+    - read:jql:jira
+    - read:jira-user
+    - read:jira-work
+resources:
+  - key: agent-prompts
+    path: prompts

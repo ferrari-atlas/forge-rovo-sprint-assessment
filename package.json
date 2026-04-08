@@ -1,0 +1,23 @@
+{
+  "name": "forge-rovo-sprint-assessment",
+  "version": "0.1.0",
+  "description": "A Forge-based Rovo Agent action that retrieves board context from Jira Software",
+  "main": "index.js",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "test": "node --import tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@forge/api": "^7.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "22",
+    "tsx": "4",
+    "typescript": "5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
