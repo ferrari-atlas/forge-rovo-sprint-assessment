@@ -82,11 +82,12 @@ src/
 ├── explainDrift.ts           # Orchestrator: explain-drift
 ├── signals.ts                # Signal parsing (pure logic, no API calls)
 ├── rules.ts                  # Deterministic rules engine with configurable thresholds
+├── velocity.ts               # Velocity signal: sprint report parsing and commitment comparison
 ├── responses.ts              # Shared response types and mapping helpers
 └── jira/
     ├── search.ts             # JQL search with changelog expansion
     └── software/
-        └── board.ts          # Jira Software REST API (board, sprint, backlog)
+        └── board.ts          # Jira Software REST API (board, sprint, backlog, sprint report)
 prompts/
 └── agent-instructions.md     # External agent prompt (controls presentation)
 test/
