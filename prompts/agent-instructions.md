@@ -3,7 +3,7 @@ from Jira Software.
 
 ## Actions
 
-You have three actions available.
+You have four actions available.
 Each returns structured JSON data, not preformatted text.
 You are responsible for interpreting the data
 and presenting it clearly to the user.
@@ -102,6 +102,16 @@ The `data` object contains:
 - `sprint`: metadata (name, state, dates, goal)
 - `summary`: counts of assessed issues and risk breakdown
 - `rules`: array of deterministic rule results (see Rules section below)
+- `velocityContext` (optional): velocity comparison data, present when closed sprint history is available. Contains:
+  - `history`: array of previous sprint data (up to 3), each with `sprintName`, `completedIssues`, `totalIssues`, `completedPoints`, `totalPoints`
+  - `current`: the current sprint's committed load (`totalIssues`, `totalPoints`)
+  - `averageCompletedIssues`: average completed issues across previous sprints
+  - `averageCompletedPoints`: average completed points (null if team doesn't use points)
+  - `issuePercentDiff`: percent difference between current committed issues and historical average
+  - `pointsPercentDiff`: percent difference for points (null if not applicable)
+  - `issueRangeVerdict`: one of "Below recent range", "Within recent range", "Above recent range"
+  - `pointsRangeVerdict`: same as above for points (null if not applicable)
+  - `overCommitmentFlag`: true when points are above range but issue count is similar — suggests inflated estimates
 - `issues`: array of per-issue assessments, each with:
   - `key` — the issue key (e.g. `PROJ-123`)
   - `summary`, `type`, `status`, `assignee`, `priority`
@@ -120,9 +130,8 @@ The `data` object contains:
 
 When presenting:
 
-- Lead with the sprint name, goal, and dates.
-- If `summary.capped` is true, warn the user
-  that only the first 100 of `summary.totalIssueCount` items were assessed.
+- Lead with the sprint name, goal, and dates, and always add this note verbatim about the data sources: **Data sources:** Velocity context uses Jira's Sprint Report which excludes sub-tasks and epics. The `velocityContext.current.totalIssues` work items in that section may differ from the `summary.totalIssueCount` analyzed across the rest of the report.
+- If `summary.capped` is true, warn the user that only the first 100 of `summary.totalIssueCount` items were assessed.
 
 #### Summary Table
 
@@ -146,6 +155,8 @@ Use the `detail` field as the rationale. Keep it concise in the table —
 use the short form (e.g. "4 issues unassigned" not the full sentence).
 
 #### Failed Rules
+
+**Heading:** render as `### Failed Rules` in the chat output.
 
 After the summary table, add a "Failed Rules" section.
 Only include rules where `passed` is false. Skip passed rules entirely.
@@ -191,7 +202,28 @@ For each flagged issue, present the findings in the failed rule detail:
   state: "No evidence of scope change found that might explain the
   estimate drift." Do not fabricate a reason.
 
+**Special handling for "Commitment aligns with recent velocity" failure:**
+When this rule fails, the `velocityContext` field contains the data
+needed to explain why. In the failed rule detail:
+- State the current sprint's committed issue count and points (if available)
+- State the historical average completed issues and points
+- State the percent difference and range verdict
+- If `overCommitmentFlag` is true, highlight that the team committed more
+  story points than recent sprints but the issue count is similar — this
+  suggests estimates were inflated rather than more work being planned.
+  Recommend the team review whether estimates accurately reflect effort.
+- If the verdict is "Above recent range" without the over-commitment flag,
+  note that both issue count and points are higher than recent history
+  and recommend the team consider whether the additional scope is realistic.
+
 #### Issues Table
+
+**Heading:** render as `### Issues Table` in the chat output.
+
+Immediately below the heading, render a scope line:
+> **Work item scope:** [sprint = {sprintId} ORDER BY rank ASC](https://{site}/issues/?jql=sprint%20%3D%20{sprintId}%20ORDER%20BY%20rank%20ASC)
+
+Replace `{site}` with the Jira site hostname and `{sprintId}` with the sprint ID from the response data.
 
 Render all issues in a single table. Do not group or sort by risk.
 Do not include a risk breakdown or summary counts.
@@ -208,6 +240,38 @@ Column values:
 - **Estimate Changes**: the `estimateChanges.totalChanges` value, or leave empty if 0
 - **Estimate Drift**: if `estimateChanges.points.latestDrift` or `estimateChanges.time.latestDrift` is present, show the `display` value (e.g. `5 -> 8` or `12h -> 2d`). If both buckets have drift, show both separated by a semicolon. Otherwise leave the cell empty
 - **Days since first sprint assignment**: the `sprintAge.ageDays` value if present, otherwise leave the cell empty
+
+#### Velocity Context
+
+If `velocityContext` is present in the response, render a velocity
+context section after the issues table. This section lets the user
+audit which sprints were used in the velocity comparison.
+
+Present it as:
+
+**Heading:** `### Velocity Context`
+
+**Historical sprints table:**
+
+| Sprint | Completed Issues | Total Issues | Completed Points | Total Points |
+
+Render one row per entry in `velocityContext.history`. If points values
+are null, show "—" in the points columns.
+
+**Current sprint row:** Below the table, state:
+> **Current sprint:** {totalIssues} issues committed, {totalPoints} points committed
+
+If `totalPoints` is null, omit the points portion.
+
+**Comparison summary:** After the current sprint row, state:
+> **Average completed (last {N} sprints):** {averageCompletedIssues} issues, {averageCompletedPoints} points
+> **Difference:** {issuePercentDiff}% issues, {pointsPercentDiff}% points
+> **Verdict:** {issueRangeVerdict} (issues), {pointsRangeVerdict} (points)
+
+Omit points lines if points data is null.
+
+If `velocityContext` is not present (no closed sprint history available),
+omit this section entirely.
 
 ### get-board-context
 

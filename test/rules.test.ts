@@ -445,10 +445,30 @@ describe("ruleNoStaleIssues", () => {
 // ---------------------------------------------------------------------------
 
 describe("evaluateAllRules", () => {
-  it("returns exactly 10 rule results", () => {
+  it("returns exactly 10 rule results without velocity signal", () => {
     const issues = [makeAssessment()];
-    const results = evaluateAllRules(sprintWithGoal, issues);
+    const results = evaluateAllRules({ sprint: sprintWithGoal, issues });
     assert.equal(results.length, 10);
+  });
+
+  it("returns 11 rule results with velocity signal", () => {
+    const issues = [makeAssessment()];
+    const velocitySignal = {
+      history: [{ sprintId: 1, sprintName: "S1", completedIssues: 10, totalIssues: 12, completedPoints: 40, totalPoints: 50 }],
+      current: { totalIssues: 12, totalPoints: 50 },
+      averageCompletedIssues: 10,
+      averageCompletedPoints: 40,
+      issuePercentDiff: 20,
+      pointsPercentDiff: 25,
+      issueRangeVerdict: "Above recent range" as const,
+      pointsRangeVerdict: "Above recent range" as const,
+      overCommitmentFlag: false,
+    };
+    const results = evaluateAllRules({ sprint: sprintWithGoal, issues, velocitySignal });
+    assert.equal(results.length, 11);
+    const velocityRule = results.find((r) => r.id === "commitment-vs-velocity");
+    assert.ok(velocityRule);
+    assert.equal(velocityRule.passed, false);
   });
 
   it("all pass for a healthy sprint", () => {
@@ -457,7 +477,7 @@ describe("evaluateAllRules", () => {
       makeAssessment({ key: "TEST-2", assignee: "Bob" }),
       makeAssessment({ key: "TEST-3", assignee: "Charlie" }),
     ];
-    const results = evaluateAllRules(sprintWithGoal, issues);
+    const results = evaluateAllRules({ sprint: sprintWithGoal, issues });
     const allPassed = results.every((r) => r.passed);
     assert.equal(allPassed, true);
   });
@@ -472,7 +492,7 @@ describe("evaluateAllRules", () => {
         sprintAge: { firstSprintDate: "2025-01-01", ageDays: 460 },
       }),
     ];
-    const results = evaluateAllRules(sprintWithoutGoal, issues);
+    const results = evaluateAllRules({ sprint: sprintWithoutGoal, issues });
     const failed = results.filter((r) => !r.passed);
     // Should fail: sprint-has-goal, all-issues-assigned, all-issues-estimated,
     // no-high-risk-carryovers, no-stale-issues

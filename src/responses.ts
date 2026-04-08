@@ -6,6 +6,7 @@ import type {
 } from "./jira/software/board";
 import type { IssueAssessment } from "./signals";
 import type { RuleResult } from "./rules";
+import type { VelocitySignal } from "./velocity";
 
 export interface ActionErrorResponse {
   ok: false;
@@ -154,6 +155,8 @@ export interface SprintAssessmentData {
   summary: SprintAssessmentSummary;
   rules: RuleResult[];
   issues: SprintAssessmentIssue[];
+  /** Board-level velocity context — omitted when no closed sprints are available. */
+  velocityContext?: VelocitySignal;
 }
 
 export interface SprintAssessmentResponse {

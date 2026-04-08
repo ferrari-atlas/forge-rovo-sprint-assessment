@@ -1,5 +1,6 @@
 import type { IssueAssessment } from "./signals";
 import type { SprintSummary } from "./responses";
+import type { VelocitySignal } from "./velocity";
 
 // ---------------------------------------------------------------------------
 // Config — default thresholds for all deterministic rules
@@ -348,13 +349,78 @@ export function ruleNoStaleIssues(
 }
 
 // ---------------------------------------------------------------------------
+// Rule 10: Commitment vs Velocity
+// ---------------------------------------------------------------------------
+
+/**
+ * Rule 10: Commitment aligns with recent velocity.
+ * Compares the current sprint's committed issue count (and points, if available)
+ * against the completed averages from the last N closed sprints.
+ */
+export function ruleCommitmentVsVelocity(
+  signal: VelocitySignal,
+): RuleResult {
+  const parts: string[] = [];
+
+  // Issue-based detail
+  parts.push(
+    `Current sprint: ${signal.current.totalIssues} issues committed. ` +
+      `Recent ${signal.history.length} sprint avg: ${signal.averageCompletedIssues} issues completed. ` +
+      `Difference: ${signal.issuePercentDiff > 0 ? "+" : ""}${signal.issuePercentDiff}%. ` +
+      `${signal.issueRangeVerdict}.`,
+  );
+
+  // Points-based detail (if available)
+  if (
+    signal.current.totalPoints !== null &&
+    signal.averageCompletedPoints !== null &&
+    signal.pointsPercentDiff !== null &&
+    signal.pointsRangeVerdict !== null
+  ) {
+    parts.push(
+      `Points: ${signal.current.totalPoints} committed vs ${signal.averageCompletedPoints} avg completed. ` +
+        `Difference: ${signal.pointsPercentDiff > 0 ? "+" : ""}${signal.pointsPercentDiff}%. ` +
+        `${signal.pointsRangeVerdict}.`,
+    );
+  }
+
+  if (signal.overCommitmentFlag) {
+    parts.push(
+      "Warning: points commitment is above the recent range but issue count is similar to recent sprints — likely over-commitment via inflated estimates.",
+    );
+  }
+
+  // Pass if both issue and points verdicts are not "Above recent range"
+  const passed =
+    signal.issueRangeVerdict !== "Above recent range" &&
+    (signal.pointsRangeVerdict === null ||
+      signal.pointsRangeVerdict !== "Above recent range");
+
+  return {
+    id: "commitment-vs-velocity",
+    name: "Commitment aligns with recent velocity",
+    category: "Commitment Risk",
+    passed,
+    flaggedIssues: [],
+    detail: parts.join(" "),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Evaluate All Rules
 // ---------------------------------------------------------------------------
 
 /**
- * Runs all 9 deterministic rules against the sprint and its issues.
- * Returns an array of RuleResult objects — one per rule.
+ * Context object for rule evaluation.
+ * Bundles all inputs so additional signals can be added without parameter sprawl.
  */
+export interface RuleEvaluationContext {
+  sprint: SprintSummary;
+  issues: IssueAssessment[];
+  config?: AssessmentConfig;
+  velocitySignal?: VelocitySignal | null;
+}
+
 /**
  * Parses a YAML config string and deep-merges it with DEFAULT_CONFIG.
  * Only known keys are merged — unknown keys are silently ignored.
@@ -433,12 +499,17 @@ function parseSimpleYaml(yaml: string): Record<string, Record<string, number>> {
   return result;
 }
 
-export function evaluateAllRules(
-  sprint: SprintSummary,
-  issues: IssueAssessment[],
-  config: AssessmentConfig = DEFAULT_CONFIG,
-): RuleResult[] {
-  return [
+/**
+ * Runs all deterministic rules against the sprint and its issues.
+ * Returns an array of RuleResult objects — one per rule.
+ *
+ * The velocity rule is only included when a VelocitySignal is provided
+ * (requires closed sprint history to be available).
+ */
+export function evaluateAllRules(ctx: RuleEvaluationContext): RuleResult[] {
+  const { sprint, issues, config = DEFAULT_CONFIG, velocitySignal } = ctx;
+
+  const results: RuleResult[] = [
     ruleSprintHasName(sprint),
     ruleSprintHasGoal(sprint),
     ruleAllIssuesAssigned(issues),
@@ -450,4 +521,10 @@ export function evaluateAllRules(
     ruleNoMajorDrift(issues, config),
     ruleNoStaleIssues(issues, config),
   ];
+
+  if (velocitySignal) {
+    results.push(ruleCommitmentVsVelocity(velocitySignal));
+  }
+
+  return results;
 }

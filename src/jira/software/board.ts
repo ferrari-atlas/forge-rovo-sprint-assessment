@@ -256,6 +256,107 @@ export async function fetchSprint(
   }
 }
 
+// ---------------------------------------------------------------------------
+// GreenHopper Sprint Report Types
+// ---------------------------------------------------------------------------
+
+export interface SprintReportEstimateSum {
+  value?: number;
+  text: string;
+}
+
+export interface SprintReportEstimateStat {
+  statFieldId: string;
+  statFieldValue: { value?: number };
+}
+
+export interface SprintReportIssue {
+  id: number;
+  key: string;
+  summary: string;
+  typeName: string;
+  statusName: string;
+  done: boolean;
+  currentEstimateStatistic: SprintReportEstimateStat;
+  estimateStatistic: SprintReportEstimateStat;
+}
+
+export interface SprintReportSprint {
+  id: number;
+  name: string;
+  state: string;
+  goal?: string;
+  isoStartDate?: string;
+  isoEndDate?: string;
+  isoCompleteDate?: string;
+}
+
+export interface SprintReportContents {
+  completedIssues: SprintReportIssue[];
+  issuesNotCompletedInCurrentSprint: SprintReportIssue[];
+  puntedIssues: SprintReportIssue[];
+  issuesCompletedInAnotherSprint: SprintReportIssue[];
+  completedIssuesEstimateSum: SprintReportEstimateSum;
+  completedIssuesInitialEstimateSum: SprintReportEstimateSum;
+  issuesNotCompletedEstimateSum: SprintReportEstimateSum;
+  issuesNotCompletedInitialEstimateSum: SprintReportEstimateSum;
+  allIssuesEstimateSum: SprintReportEstimateSum;
+  puntedIssuesEstimateSum: SprintReportEstimateSum;
+  puntedIssuesInitialEstimateSum: SprintReportEstimateSum;
+  issuesCompletedInAnotherSprintEstimateSum: SprintReportEstimateSum;
+  issuesCompletedInAnotherSprintInitialEstimateSum: SprintReportEstimateSum;
+  issueKeysAddedDuringSprint: Record<string, boolean>;
+}
+
+export interface SprintReportResponse {
+  contents: SprintReportContents;
+  sprint: SprintReportSprint;
+}
+
+// ---------------------------------------------------------------------------
+// GreenHopper Sprint Report Fetch
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetches the GreenHopper sprint report for a given board + sprint.
+ * This is an unofficial but widely-used endpoint that returns completed/incompleted
+ * issue lists as snapshotted at sprint close — avoiding changelog reconstruction.
+ *
+ * GET /rest/greenhopper/1.0/rapid/charts/sprintreport?rapidViewId={boardId}&sprintId={sprintId}
+ *
+ * Auth follows the same asUser()/asApp() pattern as all other calls.
+ */
+export async function fetchSprintReport(
+  payload: RequestBoard,
+  sprintId: number,
+): Promise<SprintReportResponse> {
+  try {
+    const apiWithAuth = getAuthForEvent(payload);
+    const boardId = payload.boardId.toString();
+    const sprintIdStr = sprintId.toString();
+    const response = await apiWithAuth.requestJira(
+      route`/rest/greenhopper/1.0/rapid/charts/sprintreport?rapidViewId=${boardId}&sprintId=${sprintIdStr}`,
+      {
+        headers: {
+          Accept: "application/json",
+        },
+      },
+    );
+    if (response.ok) {
+      return (await response.json()) as SprintReportResponse;
+    }
+    console.error(
+      `fetchSprintReport failed: HTTP ${response.status} for board=${boardId} sprint=${sprintIdStr}`,
+    );
+    throw new Error(
+      `fetchSprintReport failed: HTTP ${response.status} for board=${boardId} sprint=${sprintIdStr}`,
+    );
+  } catch (error) {
+    console.error("fetchSprintReport error:", error);
+    throw error;
+  }
+}
+
 /**
  * Fetches the backlog for a board — issues not assigned to any sprint.
  * GET /rest/agile/1.0/board/{boardId}/backlog
