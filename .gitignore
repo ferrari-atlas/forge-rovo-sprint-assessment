@@ -2,3 +2,6 @@ node_modules/
 dist/
 tmp/
 *.js.map
+.env
+.env.*
+.forge/
