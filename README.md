@@ -33,6 +33,7 @@ Both `assess-sprint` and `get-sprint-issues` support active and future sprints. 
 | Estimates are stable | Estimate Stability | `revisions < 3` |
 | No major estimate drift | Estimate Stability | `changePercent <= 50%` |
 | No stale issues | Staleness | `ageDays <= 30` (non-Done) |
+| Commitment aligns with recent velocity | Velocity | Current commitment vs 3-sprint completed avg |
 
 ### Non-deterministic Analysis (handled by the LLM)
 
@@ -93,6 +94,7 @@ prompts/
 test/
 ├── signals.test.ts           # Signal parsing tests
 ├── rules.test.ts             # Rules engine + config override tests
+├── velocity.test.ts          # Velocity signal computation tests
 ├── responses.test.ts         # Structured response tests
 └── explainDrift.test.ts      # Scope change parser tests
 ```
