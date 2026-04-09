@@ -148,62 +148,52 @@ describe("computeVelocitySignal", () => {
     ];
     const result = computeVelocitySignal(history, { totalIssues: 11, totalPoints: 43 });
     assert.ok(result);
-    assert.equal(result.issueRangeVerdict, "Within recent range");
-    assert.equal(result.pointsRangeVerdict, "Within recent range");
-    assert.equal(result.overCommitmentFlag, false);
   });
 
-  it("flags above recent range for issues", () => {
+  it("computes positive percent diff for issues above average", () => {
     const history = [
       makeHistory({ completedIssues: 10 }),
       makeHistory({ sprintId: 2, completedIssues: 12 }),
       makeHistory({ sprintId: 3, completedIssues: 11 }),
     ];
-    // Current commits to 20 issues — well above max of 12
     const result = computeVelocitySignal(history, { totalIssues: 20, totalPoints: null });
     assert.ok(result);
-    assert.equal(result.issueRangeVerdict, "Above recent range");
-    assert.equal(result.pointsRangeVerdict, null); // no points
+    assert.ok(result.issuePercentDiff > 0);
+    assert.equal(result.pointsPercentDiff, null);
   });
 
-  it("flags below recent range for issues", () => {
+  it("computes negative percent diff for issues below average", () => {
     const history = [
       makeHistory({ completedIssues: 10 }),
       makeHistory({ sprintId: 2, completedIssues: 12 }),
       makeHistory({ sprintId: 3, completedIssues: 11 }),
     ];
-    // Current commits to 5 issues — below min of 10
     const result = computeVelocitySignal(history, { totalIssues: 5, totalPoints: null });
     assert.ok(result);
-    assert.equal(result.issueRangeVerdict, "Below recent range");
+    assert.ok(result.issuePercentDiff < 0);
   });
 
-  it("sets over-commitment flag when points above range but issues similar", () => {
+  it("computes positive percent diff for points above average", () => {
     const history = [
       makeHistory({ completedIssues: 10, completedPoints: 40 }),
       makeHistory({ sprintId: 2, completedIssues: 12, completedPoints: 45 }),
       makeHistory({ sprintId: 3, completedIssues: 11, completedPoints: 42 }),
     ];
-    // 11 issues (within range), but 80 points (way above max of 45)
     const result = computeVelocitySignal(history, { totalIssues: 11, totalPoints: 80 });
     assert.ok(result);
-    assert.equal(result.overCommitmentFlag, true);
-    assert.equal(result.pointsRangeVerdict, "Above recent range");
-    assert.equal(result.issueRangeVerdict, "Within recent range");
+    assert.ok(result.pointsPercentDiff! > 0);
   });
 
-  it("does not set over-commitment flag when issues also above range", () => {
+  it("computes positive percent diff for both issues and points above average", () => {
     const history = [
       makeHistory({ completedIssues: 10, completedPoints: 40 }),
       makeHistory({ sprintId: 2, completedIssues: 12, completedPoints: 45 }),
       makeHistory({ sprintId: 3, completedIssues: 11, completedPoints: 42 }),
     ];
-    // Both issues and points above range — not over-commitment, just bigger sprint
     const result = computeVelocitySignal(history, { totalIssues: 25, totalPoints: 80 });
     assert.ok(result);
-    assert.equal(result.overCommitmentFlag, false);
-    assert.equal(result.issueRangeVerdict, "Above recent range");
-    assert.equal(result.pointsRangeVerdict, "Above recent range");
+    assert.ok(result.issuePercentDiff > 0);
+    assert.ok(result.pointsPercentDiff! > 0);
   });
 
   it("works with only 1 historical sprint", () => {
@@ -213,8 +203,8 @@ describe("computeVelocitySignal", () => {
     assert.equal(result.history.length, 1);
     assert.equal(result.averageCompletedIssues, 10);
     assert.equal(result.averageCompletedPoints, 40);
-    assert.equal(result.issueRangeVerdict, "Above recent range");
-    assert.equal(result.pointsRangeVerdict, "Above recent range");
+    assert.ok(result.issuePercentDiff > 0);
+    assert.ok(result.pointsPercentDiff! > 0);
   });
 
   it("works with only 2 historical sprints", () => {
@@ -227,8 +217,8 @@ describe("computeVelocitySignal", () => {
     assert.equal(result.history.length, 2);
     assert.equal(result.averageCompletedIssues, 12);
     assert.equal(result.averageCompletedPoints, 45);
-    assert.equal(result.issueRangeVerdict, "Within recent range");
-    assert.equal(result.pointsRangeVerdict, "Within recent range");
+    assert.equal(result.issuePercentDiff, 0);
+    assert.equal(result.pointsPercentDiff, 0);
   });
 
   it("handles null points in current sprint when history has points", () => {
@@ -238,7 +228,6 @@ describe("computeVelocitySignal", () => {
     const result = computeVelocitySignal(history, { totalIssues: 10, totalPoints: null });
     assert.ok(result);
     assert.equal(result.pointsPercentDiff, null);
-    assert.equal(result.pointsRangeVerdict, null);
     assert.equal(result.averageCompletedPoints, null);
   });
 
@@ -250,7 +239,6 @@ describe("computeVelocitySignal", () => {
     assert.ok(result);
     // No historical points to compare against
     assert.equal(result.pointsPercentDiff, null);
-    assert.equal(result.pointsRangeVerdict, null);
   });
 
   it("computes percent diff correctly", () => {

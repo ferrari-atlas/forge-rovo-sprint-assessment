@@ -48,6 +48,8 @@ estimates:
   maxDriftPercent: 50
 staleness:
   maxAgeDays: 30
+velocity:
+  maxOverCommitPercent: 25
 ```
 
 Tell the user they can modify any values and paste the updated YAML back.
@@ -109,9 +111,6 @@ The `data` object contains:
   - `averageCompletedPoints`: average completed points (null if team doesn't use points)
   - `issuePercentDiff`: percent difference between current committed issues and historical average
   - `pointsPercentDiff`: percent difference for points (null if not applicable)
-  - `issueRangeVerdict`: one of "Below recent range", "Within recent range", "Above recent range"
-  - `pointsRangeVerdict`: same as above for points (null if not applicable)
-  - `overCommitmentFlag`: true when points are above range but issue count is similar — suggests inflated estimates
 - `issues`: array of per-issue assessments, each with:
   - `key` — the issue key (e.g. `PROJ-123`)
   - `summary`, `type`, `status`, `assignee`, `priority`
@@ -203,18 +202,13 @@ For each flagged issue, present the findings in the failed rule detail:
   estimate drift." Do not fabricate a reason.
 
 **Special handling for "Commitment aligns with recent velocity" failure:**
-When this rule fails, the `velocityContext` field contains the data
-needed to explain why. In the failed rule detail:
-- State the current sprint's committed issue count and points (if available)
-- State the historical average completed issues and points
-- State the percent difference and range verdict
-- If `overCommitmentFlag` is true, highlight that the team committed more
-  story points than recent sprints but the issue count is similar — this
-  suggests estimates were inflated rather than more work being planned.
-  Recommend the team review whether estimates accurately reflect effort.
-- If the verdict is "Above recent range" without the over-commitment flag,
-  note that both issue count and points are higher than recent history
-  and recommend the team consider whether the additional scope is realistic.
+When this rule fails, render the full `detail` text as usual. The `detail`
+already states which dimension(s) exceeded the threshold and by how much.
+After the detail, append a recommendation on a new line:
+- Recommend the team review whether the additional scope is realistic
+  given recent delivery history.
+- If the user wants to allow a higher overcommit tolerance, suggest
+  adjusting `velocity.maxOverCommitPercent` in the custom thresholds YAML.
 
 #### Issues Table
 
@@ -266,7 +260,7 @@ If `totalPoints` is null, omit the points portion.
 **Comparison summary:** After the current sprint row, state:
 > **Average completed (last {N} sprints):** {averageCompletedIssues} issues, {averageCompletedPoints} points
 > **Difference:** {issuePercentDiff}% issues, {pointsPercentDiff}% points
-> **Verdict:** {issueRangeVerdict} (issues), {pointsRangeVerdict} (points)
+> **Threshold:** as shown in the "Commitment aligns with recent velocity" rule detail (e.g. "threshold: +25%")
 
 Omit points lines if points data is null.
 

@@ -56,9 +56,13 @@ estimates:
   maxDriftPercent: 50
 staleness:
   maxAgeDays: 30
+velocity:
+  maxOverCommitPercent: 25
 ```
 
 Partial overrides are supported — omitted keys fall back to defaults.
+
+`velocity.maxOverCommitPercent` controls the commitment vs velocity rule. The rule fails when committed issues or points exceed the historical completed average by more than this percentage. Comparison is one-sided: under-commitment does not fail the rule.
 
 ## Signal Parsing
 
@@ -122,7 +126,7 @@ All actions return a consistent envelope:
 fnm use          # Uses .nvmrc
 npm install
 npm run build    # TypeScript compilation
-npm test         # Run unit tests (118 tests)
+npm test         # Run unit tests
 ```
 
 ## Deployment

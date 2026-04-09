@@ -40,6 +40,9 @@ export interface AssessmentConfig {
   staleness: {
     maxAgeDays: number;
   };
+  velocity: {
+    maxOverCommitPercent: number;
+  };
 }
 
 export const DEFAULT_CONFIG: AssessmentConfig = {
@@ -56,6 +59,9 @@ export const DEFAULT_CONFIG: AssessmentConfig = {
   },
   staleness: {
     maxAgeDays: 30,
+  },
+  velocity: {
+    maxOverCommitPercent: 25,
   },
 };
 
@@ -359,42 +365,34 @@ export function ruleNoStaleIssues(
  */
 export function ruleCommitmentVsVelocity(
   signal: VelocitySignal,
+  config: AssessmentConfig,
 ): RuleResult {
+  const threshold = config.velocity.maxOverCommitPercent;
   const parts: string[] = [];
 
-  // Issue-based detail
+  // Only positive overcommit triggers failure; under-commitment is not penalised.
+  const issueOver = signal.issuePercentDiff > threshold;
   parts.push(
     `Current sprint: ${signal.current.totalIssues} issues committed. ` +
       `Recent ${signal.history.length} sprint avg: ${signal.averageCompletedIssues} issues completed. ` +
-      `Difference: ${signal.issuePercentDiff > 0 ? "+" : ""}${signal.issuePercentDiff}%. ` +
-      `${signal.issueRangeVerdict}.`,
+      `Difference: ${signal.issuePercentDiff > 0 ? "+" : ""}${signal.issuePercentDiff}% (threshold: +${threshold}%).`,
   );
 
   // Points-based detail (if available)
+  let pointsOver = false;
   if (
     signal.current.totalPoints !== null &&
     signal.averageCompletedPoints !== null &&
-    signal.pointsPercentDiff !== null &&
-    signal.pointsRangeVerdict !== null
+    signal.pointsPercentDiff !== null
   ) {
+    pointsOver = signal.pointsPercentDiff > threshold;
     parts.push(
       `Points: ${signal.current.totalPoints} committed vs ${signal.averageCompletedPoints} avg completed. ` +
-        `Difference: ${signal.pointsPercentDiff > 0 ? "+" : ""}${signal.pointsPercentDiff}%. ` +
-        `${signal.pointsRangeVerdict}.`,
+        `Difference: ${signal.pointsPercentDiff > 0 ? "+" : ""}${signal.pointsPercentDiff}% (threshold: +${threshold}%).`,
     );
   }
 
-  if (signal.overCommitmentFlag) {
-    parts.push(
-      "Warning: points commitment is above the recent range but issue count is similar to recent sprints — likely over-commitment via inflated estimates.",
-    );
-  }
-
-  // Pass if both issue and points verdicts are not "Above recent range"
-  const passed =
-    signal.issueRangeVerdict !== "Above recent range" &&
-    (signal.pointsRangeVerdict === null ||
-      signal.pointsRangeVerdict !== "Above recent range");
+  const passed = !issueOver && !pointsOver;
 
   return {
     id: "commitment-vs-velocity",
@@ -451,6 +449,10 @@ export function parseConfigOverride(yaml: string | undefined): AssessmentConfig 
       staleness: {
         maxAgeDays:
           parsed.staleness?.maxAgeDays ?? DEFAULT_CONFIG.staleness.maxAgeDays,
+      },
+      velocity: {
+        maxOverCommitPercent:
+          parsed.velocity?.maxOverCommitPercent ?? DEFAULT_CONFIG.velocity.maxOverCommitPercent,
       },
     };
   } catch {
@@ -523,7 +525,7 @@ export function evaluateAllRules(ctx: RuleEvaluationContext): RuleResult[] {
   ];
 
   if (velocitySignal) {
-    results.push(ruleCommitmentVsVelocity(velocitySignal));
+    results.push(ruleCommitmentVsVelocity(velocitySignal, config));
   }
 
   return results;

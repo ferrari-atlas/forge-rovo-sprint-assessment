@@ -11,6 +11,7 @@ import {
   ruleEstimatesStable,
   ruleNoMajorDrift,
   ruleNoStaleIssues,
+  ruleCommitmentVsVelocity,
   evaluateAllRules,
   parseConfigOverride,
   DEFAULT_CONFIG,
@@ -441,6 +442,66 @@ describe("ruleNoStaleIssues", () => {
 });
 
 // ---------------------------------------------------------------------------
+// ruleCommitmentVsVelocity
+// ---------------------------------------------------------------------------
+
+describe("ruleCommitmentVsVelocity", () => {
+  function makeSignal(issuePercentDiff: number, pointsPercentDiff: number | null) {
+    return {
+      history: [{ sprintId: 1, sprintName: "S1", completedIssues: 10, totalIssues: 12, completedPoints: 40, totalPoints: 50 }],
+      current: { totalIssues: 12, totalPoints: pointsPercentDiff !== null ? 50 : null },
+      averageCompletedIssues: 10,
+      averageCompletedPoints: pointsPercentDiff !== null ? 40 : null,
+      issuePercentDiff,
+      pointsPercentDiff,
+    };
+  }
+
+  it("passes when both diffs are within threshold", () => {
+    const result = ruleCommitmentVsVelocity(makeSignal(20, 20), DEFAULT_CONFIG);
+    assert.equal(result.passed, true);
+  });
+
+  it("passes when diffs equal the threshold", () => {
+    const result = ruleCommitmentVsVelocity(makeSignal(25, 25), DEFAULT_CONFIG);
+    assert.equal(result.passed, true);
+  });
+
+  it("fails when issue diff exceeds threshold", () => {
+    const result = ruleCommitmentVsVelocity(makeSignal(26, 10), DEFAULT_CONFIG);
+    assert.equal(result.passed, false);
+  });
+
+  it("fails when points diff exceeds threshold", () => {
+    const result = ruleCommitmentVsVelocity(makeSignal(10, 30), DEFAULT_CONFIG);
+    assert.equal(result.passed, false);
+  });
+
+  it("passes when below threshold regardless of range verdict", () => {
+    const result = ruleCommitmentVsVelocity(makeSignal(-10, -5), DEFAULT_CONFIG);
+    assert.equal(result.passed, true);
+  });
+
+  it("passes when no points data available and issues within threshold", () => {
+    const result = ruleCommitmentVsVelocity(makeSignal(20, null), DEFAULT_CONFIG);
+    assert.equal(result.passed, true);
+  });
+
+  it("respects custom maxOverCommitPercent", () => {
+    const config = { ...DEFAULT_CONFIG, velocity: { maxOverCommitPercent: 10 } };
+    const passing = ruleCommitmentVsVelocity(makeSignal(10, 5), config);
+    assert.equal(passing.passed, true);
+    const failing = ruleCommitmentVsVelocity(makeSignal(11, 5), config);
+    assert.equal(failing.passed, false);
+  });
+
+  it("includes threshold in detail string", () => {
+    const result = ruleCommitmentVsVelocity(makeSignal(30, null), DEFAULT_CONFIG);
+    assert.ok(result.detail.includes("threshold: +25%"));
+  });
+});
+
+// ---------------------------------------------------------------------------
 // evaluateAllRules
 // ---------------------------------------------------------------------------
 
@@ -451,24 +512,40 @@ describe("evaluateAllRules", () => {
     assert.equal(results.length, 10);
   });
 
-  it("returns 11 rule results with velocity signal", () => {
+  it("returns 11 rule results with velocity signal — failing", () => {
     const issues = [makeAssessment()];
     const velocitySignal = {
       history: [{ sprintId: 1, sprintName: "S1", completedIssues: 10, totalIssues: 12, completedPoints: 40, totalPoints: 50 }],
-      current: { totalIssues: 12, totalPoints: 50 },
+      current: { totalIssues: 14, totalPoints: 60 },
       averageCompletedIssues: 10,
       averageCompletedPoints: 40,
-      issuePercentDiff: 20,
-      pointsPercentDiff: 25,
-      issueRangeVerdict: "Above recent range" as const,
-      pointsRangeVerdict: "Above recent range" as const,
-      overCommitmentFlag: false,
+      issuePercentDiff: 40,
+      pointsPercentDiff: 50,
     };
     const results = evaluateAllRules({ sprint: sprintWithGoal, issues, velocitySignal });
     assert.equal(results.length, 11);
     const velocityRule = results.find((r) => r.id === "commitment-vs-velocity");
     assert.ok(velocityRule);
+    // 40% and 50% both exceed the default threshold of 25%
     assert.equal(velocityRule.passed, false);
+  });
+
+  it("returns 11 rule results with velocity signal — passing", () => {
+    const issues = [makeAssessment()];
+    const velocitySignal = {
+      history: [{ sprintId: 1, sprintName: "S1", completedIssues: 10, totalIssues: 12, completedPoints: 40, totalPoints: 50 }],
+      current: { totalIssues: 11, totalPoints: 45 },
+      averageCompletedIssues: 10,
+      averageCompletedPoints: 40,
+      issuePercentDiff: 10,
+      pointsPercentDiff: 12,
+    };
+    const results = evaluateAllRules({ sprint: sprintWithGoal, issues, velocitySignal });
+    assert.equal(results.length, 11);
+    const velocityRule = results.find((r) => r.id === "commitment-vs-velocity");
+    assert.ok(velocityRule);
+    // 10% and 12% are both within the default threshold of 25%
+    assert.equal(velocityRule.passed, true);
   });
 
   it("all pass for a healthy sprint", () => {
@@ -585,5 +662,13 @@ describe("parseConfigOverride", () => {
     ].join("\n");
     const config = parseConfigOverride(yaml);
     assert.equal(config.staleness.maxAgeDays, 60);
+  });
+
+  it("overrides velocity.maxOverCommitPercent", () => {
+    const yaml = `velocity:\n  maxOverCommitPercent: 50`;
+    const config = parseConfigOverride(yaml);
+    assert.equal(config.velocity.maxOverCommitPercent, 50);
+    // Other values unchanged
+    assert.equal(config.staleness.maxAgeDays, DEFAULT_CONFIG.staleness.maxAgeDays);
   });
 });
