@@ -7,33 +7,26 @@ A Forge app providing a Rovo agent with actions for analysing active or planned 
 ```
     User (Rovo Chat)
       |
+      |-> Prompt: "Assess the active sprint", "Assess the next sprint for readiness"
+      |
       v
     Sprint Assessment Agent
-      |   "Assess the active sprint" . "Assess the next sprint for readiness"
       |
       |-> Action: get-board-context
-      |     Fetches board config, active/future sprints, and backlog summary
       |     Jira Software API: GET /rest/agile/1.0/board/{boardId}
       |     Jira Software API: GET /rest/agile/1.0/board/{boardId}/sprint?state=active|future
       |     Jira Software API: GET /rest/agile/1.0/board/{boardId}/backlog
       |
       |-> Action: get-sprint-issues
-      |     Returns sprint issue list with change history. If no sprint specified,
-      |     prompts the user to select one from available active/future sprints
       |     Jira Software API: GET /rest/agile/1.0/board/{boardId}/sprint?state=active|future
       |     Jira REST API:     GET /rest/api/3/search/jql?jql=sprint={sprintId}&expand=changelog
       |
       |-> Action: assess-sprint
-      |     Evaluates carry-over risk per issue and applies sprint-level rules.
-      |     Includes velocity context from the last 3 closed sprints.
-      |     If no sprint specified, prompts the user to select one
       |     Jira Software API: GET /rest/agile/1.0/board/{boardId}/sprint?state=active|future|closed
       |     Jira REST API:     GET /rest/api/3/search/jql?jql=sprint={sprintId}&expand=changelog
       |     Jira Software API: GET /rest/agile/1.0/rapid/charts/sprintreport?rapidViewId={boardId}&sprintId={sprintId}
       |
       +-> Action: explain-drift
-            Fetches changelog for a single issue and identifies scope changes
-            (summary/description edits) alongside the last estimate change
             Jira REST API: GET /rest/api/3/search/jql?jql=key={issueKey}&expand=changelog
 ```
 
@@ -198,19 +191,6 @@ Forge apps using granular OAuth scopes must use `/rest/api/3/search/jql` (not `/
 
 `/rest/agile/1.0/board/{id}/configuration` requires a scope that does not exist in Forge's scope registry. Currently inaccessible from Forge apps.
 
-### Structured Response Pattern
-
-Actions return typed objects, not formatted strings. The prompt interprets and presents the structured data:
-
-```typescript
-export async function myAction(payload): Promise<ActionResponse> {
-  const data = await fetchData(payload);
-  const signals = parseSignals(data);
-  const rules = evaluateRules(signals);
-  return { ok: true, action: "my-action", data: { signals, rules } };
-}
-```
-
 ## OAuth Scopes
 
 | Scope | Used by |
@@ -229,3 +209,4 @@ export async function myAction(payload): Promise<ActionResponse> {
 - **Backlog removal + re-add**: Removing a work item to backlog and re-adding resets the sprint trail.
 - **Changelog cap**: `expand=changelog` returns up to ~100 entries per work item. Older entries may be truncated.
 - **Has-estimate inference**: Work items estimated at creation time (no changelog entry) are not detected as having an estimate.
+- **Velocity rule logic**: Only evaluates over commitment in a sprint, does not fail for undercommitment, both issue count and story point (if applicable) needd to pass for rule to pass.
