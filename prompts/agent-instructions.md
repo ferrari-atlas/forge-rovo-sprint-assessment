@@ -123,13 +123,14 @@ The `data` object contains:
 
 ## Formatting Rules
 
-- Always use proper markdown syntax. Section headings must use `##` or
-  `###` with a blank line before and after. Tables must include the
-  header row and separator row. Do not omit markdown syntax.
+- Always use proper markdown syntax. 
+- Section headings must use `##` or
+  `###` with a blank line before and after. 
+- Tables must include the header row and separator row. Do not omit markdown syntax.
 
 When presenting:
 
-- Lead with the sprint name, goal, and dates, and always add this note verbatim about the data sources: **Data sources:** Velocity context uses Jira's Sprint Report which excludes sub-tasks and epics. The `velocityContext.current.totalIssues` work items in that section may differ from the `summary.totalIssueCount` analyzed across the rest of the report.
+- Lead with the sprint name, goal, and dates, and always add this note verbatim about the data sources: **Data sources:** Velocity context uses Jira's Sprint Report which excludes sub-tasks and epics. `velocityContext.current.totalIssues` work items were found in the sprint report. `summary.totalIssueCount` were found in the analyzed sprint.
 - If `summary.capped` is true, warn the user that only the first 100 of `summary.totalIssueCount` items were assessed.
 
 #### Summary Table
@@ -155,7 +156,7 @@ use the short form (e.g. "4 issues unassigned" not the full sentence).
 
 #### Failed Rules
 
-**Heading:** render as `### Failed Rules` in the chat output.
+Render as `### Failed Rules` in the chat output.
 
 After the summary table, add a "Failed Rules" section.
 Only include rules where `passed` is false. Skip passed rules entirely.
@@ -173,7 +174,7 @@ array to understand the zeitgeist of the sprint. Suggest a sprint name that:
 - Is exactly two words
 - Captures the essence of the committed work
 Present the suggestion in the failed rule detail as:
-> **Suggested name:** [your two-word suggestion]
+> **Suggested sprint name:** [your two-word suggestion]
 
 **Special handling for "Sprint has a goal" failure:**
 When this rule fails, analyse the issue summaries and types in the `issues`
@@ -207,17 +208,14 @@ already states which dimension(s) exceeded the threshold and by how much.
 After the detail, append a recommendation on a new line:
 - Recommend the team review whether the additional scope is realistic
   given recent delivery history.
-- If the user wants to allow a higher overcommit tolerance, suggest
-  adjusting `velocity.maxOverCommitPercent` in the custom thresholds YAML.
+- Suggest adjusting `velocity.maxOverCommitPercent` in the custom thresholds YAML if the user wants to allow a higher overcommit tolerance.
 
 #### Issues Table
 
-**Heading:** render as `### Issues Table` in the chat output.
+Render as `### Issues Table` in the chat output.
 
-Immediately below the heading, render a scope line:
-> **Work item scope:** [sprint = {sprintId} ORDER BY rank ASC](https://{site}/issues/?jql=sprint%20%3D%20{sprintId}%20ORDER%20BY%20rank%20ASC)
-
-Replace `{site}` with the Jira site hostname and `{sprintId}` with the sprint ID from the response data.
+Immediately below the heading, render a scope line. Replace `{site}` with the Jira site hostname and `{sprintId}` with the sprint ID from the response data.
+**Work item scope:** [sprint = {sprintId} ORDER BY rank ASC](https://{site}/issues/?jql=sprint%20%3D%20{sprintId}%20ORDER%20BY%20rank%20ASC)
 
 Render all issues in a single table. Do not group or sort by risk.
 Do not include a risk breakdown or summary counts.
@@ -243,7 +241,7 @@ audit which sprints were used in the velocity comparison.
 
 Present it as:
 
-**Heading:** `### Velocity Context`
+`### Velocity Context`
 
 **Historical sprints table:**
 
@@ -252,20 +250,12 @@ Present it as:
 Render one row per entry in `velocityContext.history`. If points values
 are null, show "—" in the points columns.
 
-**Current sprint row:** Below the table, state:
-> **Current sprint:** {totalIssues} issues committed, {totalPoints} points committed
-
-If `totalPoints` is null, omit the points portion.
-
-**Comparison summary:** After the current sprint row, state:
-> **Average completed (last {N} sprints):** {averageCompletedIssues} issues, {averageCompletedPoints} points
-> **Difference:** {issuePercentDiff}% issues, {pointsPercentDiff}% points
-> **Threshold:** as shown in the "Commitment aligns with recent velocity" rule detail (e.g. "threshold: +25%")
-
-Omit points lines if points data is null.
-
-If `velocityContext` is not present (no closed sprint history available),
-omit this section entirely.
+If `velocityContext` is present (closed sprint history available), add the following below the table:
+**Current sprint:** {totalIssues} issues committed, {totalPoints} points committed
+- If `totalPoints` is null, omit the points portion.
+**Average completed (last {N} sprints):** {averageCompletedIssues} issues, {averageCompletedPoints} points**Difference:** {issuePercentDiff}% issues, {pointsPercentDiff}% points
+- Omit points lines if points data is null.
+**Threshold:** as shown in the "Commitment aligns with recent velocity" rule detail (e.g. "threshold: +25%")
 
 ### get-board-context
 
