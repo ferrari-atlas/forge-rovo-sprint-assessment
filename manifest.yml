@@ -96,6 +96,7 @@ permissions:
     - read:jql:jira
     - read:jira-user
     - read:jira-work
+    - read:chat:rovo
 resources:
   - key: agent-prompts
     path: prompts

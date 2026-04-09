@@ -1,10 +1,45 @@
 # Forge Rovo Sprint Assessment
 
-A Forge app providing a Rovo agent with actions for analysing Jira Software sprints. The agent retrieves board context, sprint work item data, and structured risk assessments by calling the Jira Software REST API and parsing changelogs server-side.
+A Forge app providing a Rovo agent with actions for analysing active or planned Jira Software sprints. The agent retrieves board context, sprint work item data, and produces a structured risk assessments by calling the Jira Software REST API and parsing changelogs server-side.
 
-All actions return structured JSON data. The agent prompt controls how results are presented to users. Deterministic rules are evaluated in code; non-deterministic analysis (goal suggestions, drift interpretation) is handled by the LLM using the structured data.
+All actions return structured JSON data. The agent prompt controls how results are presented to users. Deterministic rules are evaluated in code; non-deterministic analysis (goal suggestions, drift interpretation) is handled by the the Rovo Agent LLM using the structured data.
 
-## Actions
+## Architecture
+
+```
+    User (Rovo Chat)
+      |
+      v
+    Sprint Assessment Agent
+      |   "Assess the active sprint" . "Assess the next sprint for readiness"
+      |
+      |-> Action: get-board-context
+      |     Fetches board config, active/future sprints, and backlog summary
+      |     Jira Software API: GET /rest/agile/1.0/board/{boardId}
+      |     Jira Software API: GET /rest/agile/1.0/board/{boardId}/sprint?state=active|future
+      |     Jira Software API: GET /rest/agile/1.0/board/{boardId}/backlog
+      |
+      |-> Action: get-sprint-issues
+      |     Returns sprint issue list with change history. If no sprint specified,
+      |     prompts the user to select one from available active/future sprints
+      |     Jira Software API: GET /rest/agile/1.0/board/{boardId}/sprint?state=active|future
+      |     Jira REST API:     GET /rest/api/3/search/jql?jql=sprint={sprintId}&expand=changelog
+      |
+      |-> Action: assess-sprint
+      |     Evaluates carry-over risk per issue and applies sprint-level rules.
+      |     Includes velocity context from the last 3 closed sprints.
+      |     If no sprint specified, prompts the user to select one
+      |     Jira Software API: GET /rest/agile/1.0/board/{boardId}/sprint?state=active|future|closed
+      |     Jira REST API:     GET /rest/api/3/search/jql?jql=sprint={sprintId}&expand=changelog
+      |     Jira Software API: GET /rest/agile/1.0/rapid/charts/sprintreport?rapidViewId={boardId}&sprintId={sprintId}
+      |
+      +-> Action: explain-drift
+            Fetches changelog for a single issue and identifies scope changes
+            (summary/description edits) alongside the last estimate change
+            Jira REST API: GET /rest/api/3/search/jql?jql=key={issueKey}&expand=changelog
+```
+
+## Forge Actions
 
 | Action | Purpose |
 |---|---|
@@ -103,45 +138,33 @@ test/
 └── explainDrift.test.ts      # Scope change parser tests
 ```
 
-**Design principle:** Deterministic computation happens in code (signals, rules, thresholds). The LLM owns presentation and non-deterministic analysis. Actions return structured JSON; the prompt shapes the user-facing output.
-
-## Response Contract
-
-All actions return a consistent envelope:
-
-```typescript
-// Success
-{ ok: true, action: "<name>", data: { ... } }
-
-// Sprint selection required
-{ ok: true, action: "<name>", selectionRequired: true, data: { availableSprints: [...] } }
-
-// Error
-{ ok: false, action: "<name>", error: { code: "<CODE>", message: "..." } }
-```
+**Design principle:** Deterministic computation happens in code (signals, rules, thresholds). The LLM owns presentation and non-deterministic analysis. Actions return structured JSON; the agent-instructions.md shapes the user-facing output.
 
 ## Setup
+
+### Prerequisites
+- [Forge CLI](https://developer.atlassian.com/platform/forge/getting-started/) installed and logged in
+- An Atlassian site with Jira Software
+- A Scrum board in Jira Software
+
+### 1. Clone and install dependencies
+
+```bash
+git clone https://github.com/ferrari-atlas/forge-rovo-sprint-assessment.git
+cd forge-rovo-sprint-assignment
+```
 
 ```bash
 fnm use          # Uses .nvmrc
 npm install
 npm run build    # TypeScript compilation
-npm test         # Run unit tests
 ```
 
-## Deployment
+### 2. Deploy and install
 
 ```bash
 forge deploy --non-interactive -e development
-forge install --non-interactive --site <site>.atlassian.net --product jira --environment development
-```
-
-Use `--upgrade` when adding new scopes.
-
-## Development
-
-```bash
-forge tunnel -e development
+forge install --non-interactive --site yoursite.atlassian.net --product jira --environment development
 ```
 
 ## Key Development Patterns
