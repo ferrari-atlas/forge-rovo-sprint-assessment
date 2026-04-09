@@ -1,8 +1,6 @@
 # Forge Rovo Sprint Assessment
 
-A Forge app providing a Rovo agent with actions for analysing active or planned Jira Software sprints. The agent retrieves board context, sprint work item data, and produces a structured risk assessments by calling the Jira Software REST API and parsing changelogs server-side.
-
-All actions return structured JSON data. The agent prompt controls how results are presented to users. Deterministic rules are evaluated in code; non-deterministic analysis (goal suggestions, drift interpretation) is handled by the the Rovo Agent LLM using the structured data.
+A Forge app providing a Rovo agent with actions for analysing active or planned Jira Software sprints. The agent retrieves board context, sprint work item data, and produces a structured risk assessments against a set of rules that represent best practices.
 
 ## Architecture
 
@@ -223,18 +221,7 @@ export async function myAction(payload): Promise<ActionResponse> {
 | `read:jql:jira` | JQL search execution |
 | `read:jira-work` | `/rest/api/3/search/jql` endpoint |
 | `read:jira-user` | User identity resolution |
-
-## Adding a New Action
-
-1. Create the API function in `src/jira/` (if new endpoint needed)
-2. Create the orchestrator in `src/` (follow existing pattern)
-3. Add response types to `src/responses.ts`
-4. Export from `src/index.ts`
-5. Add `action`, `function`, and agent reference in `manifest.yml`
-6. Update `prompts/agent-instructions.md`
-7. Add tests if the action includes parsing logic
-8. Run `forge lint`, `npx tsc`, `npm test`
-9. Deploy and upgrade
+| `read:chat:rovo` | Enables no-code agents to use actions |
 
 ## Known Blind Spots
 
