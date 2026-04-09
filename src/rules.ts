@@ -130,13 +130,13 @@ export function ruleAllIssuesAssigned(issues: IssueAssessment[]): RuleResult {
   const passed = unassigned.length === 0;
   return {
     id: "all-issues-assigned",
-    name: "All issues have an assignee",
+    name: "All work items have an assignee",
     category: "Issue Readiness",
     passed,
     flaggedIssues: unassigned.map((i) => i.key),
     detail: passed
-      ? "All issues have an assignee."
-      : `${unassigned.length} issue(s) are unassigned.`,
+      ? "All work items have an assignee."
+      : `${unassigned.length} work item(s) are unassigned.`,
   };
 }
 
@@ -149,13 +149,13 @@ export function ruleAllIssuesEstimated(issues: IssueAssessment[]): RuleResult {
   const passed = unestimated.length === 0;
   return {
     id: "all-issues-estimated",
-    name: "All issues have an estimate",
+    name: "All work items have an estimate",
     category: "Issue Readiness",
     passed,
     flaggedIssues: unestimated.map((i) => i.key),
     detail: passed
-      ? "All issues show evidence of estimation."
-      : `${unestimated.length} issue(s) have no estimate detected in their change history.`,
+      ? "All work items show evidence of estimation."
+      : `${unestimated.length} work item(s) have no estimate detected in their change history.`,
   };
 }
 
@@ -177,8 +177,8 @@ export function ruleNoHighRiskCarryOvers(
     passed,
     flaggedIssues: flagged.map((i) => i.key),
     detail: passed
-      ? `No issues have been carried over across ${threshold} or more sprints.`
-      : `${flagged.length} issue(s) have been carried over across ${threshold} or more sprints.`,
+      ? `No work items have been carried over across ${threshold} or more sprints.`
+      : `${flagged.length} work item(s) have been carried over across ${threshold} or more sprints.`,
   };
 }
 
@@ -195,13 +195,13 @@ export function ruleStableOwnership(
   const passed = flagged.length === 0;
   return {
     id: "stable-ownership",
-    name: "Issues have stable ownership",
+    name: "Work items have stable ownership",
     category: "Ownership Stability",
     passed,
     flaggedIssues: flagged.map((i) => i.key),
     detail: passed
-      ? `No issues have been reassigned ${threshold} or more times.`
-      : `${flagged.length} issue(s) have been reassigned ${threshold} or more times.`,
+      ? `No work items have been reassigned ${threshold} or more times.`
+      : `${flagged.length} work item(s) have been reassigned ${threshold} or more times.`,
   };
 }
 
@@ -223,7 +223,7 @@ export function ruleWorkDistributed(
       category: "Ownership Stability",
       passed: true,
       flaggedIssues: [],
-      detail: "No issues to evaluate.",
+      detail: "No work items to evaluate.",
     };
   }
 
@@ -320,8 +320,8 @@ export function ruleNoMajorDrift(
     passed,
     flaggedIssues: flagged,
     detail: passed
-      ? `No issues have estimate drift exceeding ${threshold}%.`
-      : `${flagged.length} issue(s) have estimate drift exceeding ${threshold}%.`,
+      ? `No work items have estimate drift exceeding ${threshold}%.`
+      : `${flagged.length} work item(s) have estimate drift exceeding ${threshold}%.`,
   };
 }
 
@@ -344,12 +344,12 @@ export function ruleNoStaleIssues(
   const passed = flagged.length === 0;
   return {
     id: "no-stale-issues",
-    name: "No stale issues",
+    name: "No stale work items",
     category: "Staleness",
     passed,
     flaggedIssues: flagged.map((i) => i.key),
     detail: passed
-      ? `No incomplete issues are older than ${threshold} days since first sprint assignment.`
+      ? `No incomplete work items are older than ${threshold} days since first sprint assignment.`
       : `${flagged.length} incomplete issue(s) are older than ${threshold} days since first sprint assignment.`,
   };
 }
@@ -373,8 +373,8 @@ export function ruleCommitmentVsVelocity(
   // Only positive overcommit triggers failure; under-commitment is not penalised.
   const issueOver = signal.issuePercentDiff > threshold;
   parts.push(
-    `Current sprint: ${signal.current.totalIssues} issues committed. ` +
-      `Recent ${signal.history.length} sprint avg: ${signal.averageCompletedIssues} issues completed. ` +
+    `Current sprint: ${signal.current.totalIssues} work items committed. ` +
+      `Recent ${signal.history.length} sprint avg: ${signal.averageCompletedIssues} work items completed. ` +
       `Difference: ${signal.issuePercentDiff > 0 ? "+" : ""}${signal.issuePercentDiff}% (threshold: +${threshold}%).`,
   );
 

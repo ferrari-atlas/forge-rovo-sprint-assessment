@@ -1,6 +1,6 @@
 # Forge Rovo Sprint Assessment
 
-A Forge app providing a Rovo agent with actions for analysing Jira Software sprints. The agent retrieves board context, sprint issue data, and structured risk assessments by calling the Jira Software REST API and parsing changelogs server-side.
+A Forge app providing a Rovo agent with actions for analysing Jira Software sprints. The agent retrieves board context, sprint work item data, and structured risk assessments by calling the Jira Software REST API and parsing changelogs server-side.
 
 All actions return structured JSON data. The agent prompt controls how results are presented to users. Deterministic rules are evaluated in code; non-deterministic analysis (goal suggestions, drift interpretation) is handled by the LLM using the structured data.
 
@@ -9,9 +9,9 @@ All actions return structured JSON data. The agent prompt controls how results a
 | Action | Purpose |
 |---|---|
 | `get-board-context` | Board details, active/future sprints, backlog overview |
-| `get-sprint-issues` | All issues in a selected sprint with full changelog data |
+| `get-sprint-issues` | All work items in a selected sprint with full changelog data |
 | `assess-sprint` | Readiness and risk assessment with configurable deterministic rules |
-| `explain-drift` | Investigates probable cause of estimate drift for a specific issue |
+| `explain-drift` | Investigates probable cause of estimate drift for a specific work item |
 
 ## Sprint Selection Flow
 
@@ -25,19 +25,19 @@ Both `assess-sprint` and `get-sprint-issues` support active and future sprints. 
 |---|---|---|
 | Sprint has a meaningful name | Sprint Hygiene | Not matching `{KEY} Sprint {N}` pattern |
 | Sprint has a goal | Sprint Hygiene | Non-empty |
-| All issues have an assignee | Issue Readiness | 0% unassigned |
-| All issues have an estimate | Issue Readiness | Inferred from changelog |
+| All work items have an assignee | Issue Readiness | 0% unassigned |
+| All work items have an estimate | Issue Readiness | Inferred from changelog |
 | No high-risk carry-overs | Carry-Over Risk | `sprintCount >= 3` |
-| Issues have stable ownership | Ownership Stability | `reassignments < 3` |
+| Work items have stable ownership | Ownership Stability | `reassignments < 3` |
 | Work is distributed | Ownership Stability | No assignee > 40% of items |
 | Estimates are stable | Estimate Stability | `revisions < 3` |
 | No major estimate drift | Estimate Stability | `changePercent <= 50%` |
-| No stale issues | Staleness | `ageDays <= 30` (non-Done) |
+| No stale work items | Staleness | `ageDays <= 30` (non-Done) |
 | Commitment aligns with recent velocity | Velocity | Current commitment vs 3-sprint completed avg |
 
 ### Non-deterministic Analysis (handled by the LLM)
 
-- **Sprint goal suggestion**: When the goal rule fails, the LLM synthesises a suggested goal from issue summaries
+- **Sprint goal suggestion**: When the goal rule fails, the LLM synthesises a suggested goal from work item summaries
 - **Sprint name suggestion**: When the name rule fails, the LLM suggests a two-word name capturing the sprint's zeitgeist
 - **Drift probable cause**: The `explain-drift` action returns scope changes (summary/description edits) near estimate changes; the LLM interprets the diff and assesses whether scope change explains the drift
 
@@ -62,18 +62,18 @@ velocity:
 
 Partial overrides are supported — omitted keys fall back to defaults.
 
-`velocity.maxOverCommitPercent` controls the commitment vs velocity rule. The rule fails when committed issues or points exceed the historical completed average by more than this percentage. Comparison is one-sided: under-commitment does not fail the rule.
+`velocity.maxOverCommitPercent` controls the commitment vs velocity rule. The rule fails when committed work items or points exceed the historical completed average by more than this percentage. Comparison is one-sided: under-commitment does not fail the rule.
 
 ## Signal Parsing
 
-Each issue is assessed server-side by parsing its changelog:
+Each work item is assessed server-side by parsing its changelog:
 
 | Signal | What it extracts |
 |---|---|
-| Carry-over count | Number of distinct sprints the issue has been in |
+| Carry-over count | Number of distinct sprints the work item has been in |
 | Assignee changes | Count of reassignments with from/to/date |
 | Estimate changes | Revisions bucketed into points and time, with latest drift and percentage change |
-| Sprint age | Days since the issue was first assigned to any sprint |
+| Sprint age | Days since the work item was first assigned to any sprint |
 | Has estimate | Whether an estimate was ever set (inferred from changelog) |
 
 ## Project Structure
@@ -215,7 +215,7 @@ export async function myAction(payload): Promise<ActionResponse> {
 
 ## Known Blind Spots
 
-- **Manual mid-sprint moves**: If an issue is moved between sprints while the source sprint is still active, the source sprint does not persist in the cumulative list.
-- **Backlog removal + re-add**: Removing an issue to backlog and re-adding resets the sprint trail.
-- **Changelog cap**: `expand=changelog` returns up to ~100 entries per issue. Older entries may be truncated.
-- **Has-estimate inference**: Issues estimated at creation time (no changelog entry) are not detected as having an estimate.
+- **Manual mid-sprint moves**: If a work item is moved between sprints while the source sprint is still active, the source sprint does not persist in the cumulative list.
+- **Backlog removal + re-add**: Removing a work item to backlog and re-adding resets the sprint trail.
+- **Changelog cap**: `expand=changelog` returns up to ~100 entries per work item. Older entries may be truncated.
+- **Has-estimate inference**: Work items estimated at creation time (no changelog entry) are not detected as having an estimate.
