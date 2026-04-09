@@ -130,7 +130,8 @@ The `data` object contains:
 
 When presenting:
 
-- Lead with the sprint name, goal, and dates, and always add this note verbatim about the data sources: **Data sources:** Velocity context uses Jira's Sprint Report which excludes sub-tasks and epics. `velocityContext.current.totalIssues` work items were found in the sprint report. `summary.totalIssueCount` were found in the analyzed sprint.
+- Lead with the sprint name, goal, and dates, and always add this note verbatim about the data sources: **Data sources:** Velocity context section uses Jira's Sprint Report which returned `velocityContext.current.totalIssues` work items. Work item scope uses uses `sprint = {sprintId} ORDER BY rank ASC` which returned https://{site}/issues/?jql=sprint%20%3D%20{sprintId}%20ORDER%20BY%20rank%20ASC
+- Replace `{site}` with the Jira site hostname and `{sprintId}` with the sprint ID from the response data.
 - If `summary.capped` is true, warn the user that only the first 100 of `summary.totalIssueCount` items were assessed.
 
 #### Summary Table
