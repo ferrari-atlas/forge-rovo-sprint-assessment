@@ -141,12 +141,12 @@ describe("makeErrorResponse", () => {
   it("returns ok:false with correct structure", () => {
     const result = makeErrorResponse(
       "assess-sprint",
-      "NO_ACTIVE_SPRINT",
+      "NO_SPRINTS",
       "No active sprint found",
     );
     assert.equal(result.ok, false);
     assert.equal(result.action, "assess-sprint");
-    assert.equal(result.error.code, "NO_ACTIVE_SPRINT");
+    assert.equal(result.error.code, "NO_SPRINTS");
     assert.equal(result.error.message, "No active sprint found");
   });
 });
@@ -189,6 +189,9 @@ describe("toBoardSummary", () => {
         projectKey: "MP",
         projectTypeKey: "software",
         displayName: "My Board",
+        name: "My Board",
+        userAccountId: "",
+        userId: 0,
       },
     };
     const result = toBoardSummary(board);

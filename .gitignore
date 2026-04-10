@@ -5,3 +5,4 @@ tmp/
 .env
 .env.*
 .forge/
+.vscode/
