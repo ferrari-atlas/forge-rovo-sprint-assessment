@@ -151,45 +151,13 @@ npm install
 npm run build    # TypeScript compilation
 ```
 
-### 2. Deploy and install
+### 2. Register, deploy and install
 
 ```bash
+forge register
 forge deploy --non-interactive -e development
 forge install --non-interactive --site yoursite.atlassian.net --product jira --environment development
 ```
-
-## Key Development Patterns
-
-### Authentication: `asApp()` vs `asUser()`
-
-Rovo agent actions set `userAccess.enabled: false` by default. This means `asUser()` will fail with `NEEDS_AUTHENTICATION_ERR`. Always check the flag:
-
-```typescript
-import { asApp, asUser } from "@forge/api";
-
-function getAuth(context?: { userAccess?: { enabled: boolean } }) {
-  if (context?.userAccess?.enabled) return asUser();
-  return asApp();
-}
-```
-
-### The `toString` Property Trap
-
-The Jira changelog API returns items with a property literally named `"toString"`. Always use bracket notation:
-
-```typescript
-function getToString(item: ChangelogItem): string | null {
-  return (item as unknown as Record<string, string | null>)["toString"] ?? null;
-}
-```
-
-### Jira REST API Endpoint Versions
-
-Forge apps using granular OAuth scopes must use `/rest/api/3/search/jql` (not `/rest/api/3/search` which returns `410 Gone`).
-
-### Board Configuration Endpoint
-
-`/rest/agile/1.0/board/{id}/configuration` requires a scope that does not exist in Forge's scope registry. Currently inaccessible from Forge apps.
 
 ## OAuth Scopes
 
