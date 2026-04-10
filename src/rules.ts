@@ -89,7 +89,7 @@ export interface RuleResult {
  * Fails if the sprint name matches the default pattern: "{PROJECT KEY} Sprint {integer}".
  */
 export function ruleSprintHasName(sprint: SprintSummary): RuleResult {
-  const defaultPattern = /^[A-Z][A-Z0-9_]+ Sprint \d+$/;
+  const defaultPattern = /\bSprint \d+$/i;
   const isDefault = defaultPattern.test(sprint.name.trim());
   return {
     id: "sprint-has-name",
@@ -300,12 +300,12 @@ export function ruleNoMajorDrift(
     const pointsExceeds =
       pointsDrift?.changePercent !== null &&
       pointsDrift?.changePercent !== undefined &&
-      Math.abs(pointsDrift.changePercent) > threshold;
+      Math.abs(pointsDrift.changePercent) >= threshold;
 
     const timeExceeds =
       timeDrift?.changePercent !== null &&
       timeDrift?.changePercent !== undefined &&
-      Math.abs(timeDrift.changePercent) > threshold;
+      Math.abs(timeDrift.changePercent) >= threshold;
 
     if (pointsExceeds || timeExceeds) {
       flagged.push(issue.key);

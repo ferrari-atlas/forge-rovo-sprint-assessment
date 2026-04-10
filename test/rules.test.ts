@@ -53,7 +53,7 @@ function makeAssessment(overrides: Partial<IssueAssessment> = {}): IssueAssessme
 
 const sprintWithGoal: SprintSummary = {
   id: 1,
-  name: "Sprint 1",
+  name: "Rocket Launch",
   state: "active",
   startDate: "2026-04-01",
   endDate: "2026-04-15",
@@ -62,7 +62,7 @@ const sprintWithGoal: SprintSummary = {
 
 const sprintWithoutGoal: SprintSummary = {
   id: 2,
-  name: "Sprint 2",
+  name: "Quiet Storm",
   state: "active",
 };
 
