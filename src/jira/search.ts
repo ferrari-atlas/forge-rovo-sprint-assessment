@@ -12,7 +12,6 @@ import { asApp, asUser, route } from "@forge/api";
 interface EventContext {
   cloudId: string;
   moduleKey: string;
-  userAccess?: { enabled: boolean };
 }
 
 /**
@@ -117,14 +116,15 @@ export interface SearchRequest {
 // Auth Helper
 // ---------------------------------------------------------------------------
 
+// Use asUser() whenever a user context is present so API calls are scoped to
+// the requesting user's permissions. Fall back to asApp() only when there is
+// no user context (e.g. scheduled triggers, web triggers) — this app has none,
+// but the fallback is kept for safety.
 function getAuthForSearch(request: { context?: EventContext }) {
   if (request.context === undefined) {
     return asApp();
   }
-  if (request.context.userAccess?.enabled) {
-    return asUser();
-  }
-  return asApp();
+  return asUser();
 }
 
 // ---------------------------------------------------------------------------
