@@ -15,6 +15,7 @@ export interface ActionErrorResponse {
     code:
       | "MISSING_BOARD_ID"
       | "MISSING_ISSUE_KEY"
+      | "INVALID_INPUT"
       | "NO_SPRINTS"
       | "NO_ISSUES"
       | "REQUEST_FAILED";

@@ -124,6 +124,14 @@ export async function explainDrift(
     );
   }
 
+  if (!/^[A-Z][A-Z0-9_]+-\d+$/i.test(payload.issueKey)) {
+    return makeErrorResponse(
+      "explain-drift",
+      "INVALID_INPUT",
+      `Invalid issue key format: "${payload.issueKey}". Expected format: PROJECT-123.`,
+    );
+  }
+
   try {
     const jql = `key = "${payload.issueKey}"`;
     const issues = await searchIssuesWithChangelog({
