@@ -77,9 +77,11 @@ When the user pastes a YAML config, pass the full YAML string as the
 `config` input to **assess-sprint**. Only known keys are used — unknown
 keys are ignored. Any omitted keys fall back to defaults.
 
-When confirming custom thresholds with the user or referencing them
-in the assessment output, always wrap the setting and value in an
-inline code block, e.g. `highRiskSprintCount: 5`.
+When confirming custom thresholds with the user, wrap the setting
+and value in an inline code block, e.g. `highRiskSprintCount: 5`.
+In assessment output (rules, risks, recommendations), use plain
+language instead of config key names (e.g. "carry-over threshold of 3
+sprints" not "`highRiskSprintCount: 3`").
 
 ## Response Envelope
 
@@ -172,8 +174,8 @@ The `data` object contains:
   - `sprintAge.ageDays` — days since the work item was first placed in a sprint (may be null)
 
 ## Response Output
-- Lead with the sprint name, goal, and dates, and always add this note verbatim about the data sources: **Data sources:** Velocity context section uses Jira's Sprint Report which returned `velocityContext.current.totalIssues` work items. Work item scope uses uses `sprint = {sprintId} ORDER BY rank ASC` which returned https://{site}/issues/?jql=sprint%20%3D%20{sprintId}%20ORDER%20BY%20rank%20ASC
-- Replace `{site}` with the Jira site hostname and `{sprintId}` with the sprint ID from the response data.
+- Lead with the sprint name, goal, and dates, and always add this note verbatim about the data sources: **Data sources:** Velocity context section uses Jira's Sprint Report which returned {velocityContext.current.totalIssues} work items. Work item scope uses `sprint = {sprintId} ORDER BY rank ASC` which returned https://{site}/issues/?jql=sprint%20%3D%20{sprintId}%20ORDER%20BY%20rank%20ASC
+- Replace all `{placeholder}` tokens in the data sources line with the actual values from the response data. `{velocityContext.current.totalIssues}` is the number from `data.velocityContext.current.totalIssues`. `{site}` is the Jira site hostname. `{sprintId}` is the sprint ID.
 - If `summary.capped` is true, warn the user that only the first 100 of `summary.totalIssueCount` work items were assessed.
 - Render sections in this order: Assessment Results → Failed Rules → Work Items Analyzed → Velocity Report Summary → Key Readiness Risks → Recommendations.
 
@@ -245,7 +247,7 @@ already states which dimension(s) exceeded the threshold and by how much.
 After the detail, append a recommendation on a new line:
 - Recommend the team review whether the additional scope is realistic
   given recent delivery history.
-- Suggest adjusting `velocity.maxOverCommitPercent` in the custom thresholds YAML if the user wants to allow a higher overcommit tolerance.
+- Suggest adjusting the overcommit tolerance in the custom thresholds YAML if the team considers the current limit too strict.
 
 ### Work Items Analyzed
 **Scope:** [sprint = {sprintId} ORDER BY rank ASC](https://{site}/issues/?jql=sprint%20%3D%20{sprintId}%20ORDER%20BY%20rank%20ASC)
@@ -280,12 +282,14 @@ Present the table as:
 Render one row per entry in `velocityContext.history`. If points values
 are null, show "—" in the points columns.
 
-If `velocityContext` is present (closed sprint history available), add the following below the table:
+If `velocityContext` is present (closed sprint history available), add the following below the table.
+Replace every `{token}` with the actual value from the response data.
 **Current sprint:** {totalIssues} work items committed, {totalPoints} points committed
-- If `totalPoints` is null, omit the points portion.
+- `{totalIssues}` = `velocityContext.current.totalIssues`. `{totalPoints}` = `velocityContext.current.totalPoints`. If `totalPoints` is null, omit the points portion.
 **Average completed (last {N} sprints):** {averageCompletedIssues} work items, {averageCompletedPoints} points
+- `{N}` = number of entries in `velocityContext.history`. `{averageCompletedIssues}` and `{averageCompletedPoints}` from the velocity context. Omit points if null.
 **Difference:** {issuePercentDiff}% work items, {pointsPercentDiff}% points
-- Omit points lines if points data is null.
+- Values from `velocityContext.issuePercentDiff` and `velocityContext.pointsPercentDiff`. Omit points if null.
 **Threshold:** as shown in the "Commitment aligns with recent velocity" rule detail (e.g. "threshold: +25%")
 
 ### Key Readiness Risks
@@ -299,3 +303,5 @@ Summarize the 3-5 most important risks identified in the assessment. Each bullet
 Render as `### Recommendations` in the chat output.
 
 Provide 3-5 actionable recommendations based on the flagged risks. Each bullet should be specific and practical, referencing the relevant failed rules or patterns. Draw only from data already present in the report.
+
+**Important:** Never reference raw JSON field names, config keys, or object paths in recommendations or any user-facing text (e.g. do not write `maxIssuePercentPerAssignee` or `velocityContext.current.totalIssues`). Always use the resolved human-readable values and plain language instead (e.g. "40% threshold" not "`maxIssuePercentPerAssignee` threshold").
