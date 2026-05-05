@@ -339,7 +339,7 @@ export async function fetchSprintReport(
     );
   } catch (error) {
     throw new Error(
-      `fetchSprintReport failed for board=${boardId} sprint=${sprintIdStr}`,
+      `fetchSprintReport failed for board=${payload.boardId} sprint=${sprintId}`,
       { cause: error },
     );
   }
