@@ -11,7 +11,6 @@ import { asApp, asUser, route } from "@forge/api";
 interface EventContext {
   cloudId: string;
   moduleKey: string;
-  userAccess?: { enabled: boolean };
 }
 
 /**
@@ -127,15 +126,15 @@ export interface BacklogResultPage extends PagedResponse {
  * Uses the direct asUser/asApp imports from @forge/api (not api.asUser()),
  * matching the guardrail pattern. Checks userAccess.enabled from context.
  */
+// Use asUser() whenever a user context is present so API calls are scoped to
+// the requesting user's permissions. Fall back to asApp() only for contexts
+// with no user (e.g. scheduled triggers, web triggers) — this app has none,
+// but the fallback is kept for safety.
 function getAuthForEvent(request: { context?: RovoBoardContext }) {
   if (request.context === undefined) {
     return asApp();
   }
-  const c = request.context;
-  if (c.userAccess?.enabled) {
-    return asUser();
-  }
-  return asApp();
+  return asUser();
 }
 
 // ---------------------------------------------------------------------------
