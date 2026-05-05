@@ -1,4 +1,4 @@
-import { asApp, asUser, route } from "@forge/api";
+import { asUser, route } from "@forge/api";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -116,13 +116,15 @@ export interface SearchRequest {
 // Auth Helper
 // ---------------------------------------------------------------------------
 
-// Use asUser() whenever a user context is present so API calls are scoped to
-// the requesting user's permissions. Fall back to asApp() only when there is
-// no user context (e.g. scheduled triggers, web triggers) — this app has none,
-// but the fallback is kept for safety.
+// Always use asUser() so API calls are scoped to the requesting user's
+// permissions. This app only runs via Rovo agent actions, which always
+// have a user context. If context is missing, something is wrong — fail
+// loudly rather than silently falling back to asApp().
 function getAuthForSearch(request: { context?: EventContext }) {
   if (request.context === undefined) {
-    return asApp();
+    throw new Error(
+      "No user context available. This app requires a user context for all API calls.",
+    );
   }
   return asUser();
 }

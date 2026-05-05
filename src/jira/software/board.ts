@@ -1,4 +1,4 @@
-import { asApp, asUser, route } from "@forge/api";
+import { asUser, route } from "@forge/api";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -120,19 +120,15 @@ export interface BacklogResultPage extends PagedResponse {
 // Auth Helper — matches forge-rovo-guardrail-sprint exactly
 // ---------------------------------------------------------------------------
 
-/**
- * Determines the correct authentication method for a Forge API call.
- *
- * Uses the direct asUser/asApp imports from @forge/api (not api.asUser()),
- * matching the guardrail pattern. Checks userAccess.enabled from context.
- */
-// Use asUser() whenever a user context is present so API calls are scoped to
-// the requesting user's permissions. Fall back to asApp() only for contexts
-// with no user (e.g. scheduled triggers, web triggers) — this app has none,
-// but the fallback is kept for safety.
+// Always use asUser() so API calls are scoped to the requesting user's
+// permissions. This app only runs via Rovo agent actions, which always
+// have a user context. If context is missing, something is wrong — fail
+// loudly rather than silently falling back to asApp().
 function getAuthForEvent(request: { context?: RovoBoardContext }) {
   if (request.context === undefined) {
-    return asApp();
+    throw new Error(
+      "No user context available. This app requires a user context for all API calls.",
+    );
   }
   return asUser();
 }
