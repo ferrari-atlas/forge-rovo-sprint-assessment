@@ -180,11 +180,9 @@ export async function fetchBoard(
       const responseJson = (await response.json()) as BoardResponse;
       return responseJson;
     }
-    console.error(`Failed: Board Id "${payload.boardId}"`);
     throw new Error(`Failed for Board Id "${payload.boardId}"`);
   } catch (error) {
-    console.error(error);
-    throw new Error(`Failed for Board Id "${payload.boardId}"`);
+    throw new Error(`Failed for Board Id "${payload.boardId}"`, { cause: error });
   }
 }
 
@@ -214,11 +212,9 @@ export async function listSprintsForBoard(
     if (response.status === 404) {
       return { startAt: 0, maxResults: 0, total: 0, isLast: true, values: [] };
     }
-    console.error(`Failed: Board Id "${payload.boardId}"`);
     throw new Error(`Failed for Board Id "${payload.boardId}"`);
   } catch (error) {
-    console.error(error);
-    throw new Error(`Failed for Board Id "${payload.boardId}"`);
+    throw new Error(`Failed for Board Id "${payload.boardId}"`, { cause: error });
   }
 }
 
@@ -243,11 +239,9 @@ export async function fetchSprint(
     if (response.ok) {
       return (await response.json()) as SprintResponse;
     }
-    console.error(`Failed: Sprint Id "${sprintId}"`);
     throw new Error(`Failed for Sprint Id "${sprintId}"`);
   } catch (error) {
-    console.error(error);
-    throw new Error(`Failed for Sprint Id "${sprintId}"`);
+    throw new Error(`Failed for Sprint Id "${sprintId}"`, { cause: error });
   }
 }
 
@@ -319,7 +313,7 @@ export interface SprintReportResponse {
  *
  * GET /rest/greenhopper/1.0/rapid/charts/sprintreport?rapidViewId={boardId}&sprintId={sprintId}
  *
- * Auth follows the same asUser()/asApp() pattern as all other calls.
+ * Auth follows the same asUser() pattern as all other calls.
  */
 export async function fetchSprintReport(
   payload: RequestBoard,
@@ -340,15 +334,14 @@ export async function fetchSprintReport(
     if (response.ok) {
       return (await response.json()) as SprintReportResponse;
     }
-    console.error(
-      `fetchSprintReport failed: HTTP ${response.status} for board=${boardId} sprint=${sprintIdStr}`,
-    );
     throw new Error(
       `fetchSprintReport failed: HTTP ${response.status} for board=${boardId} sprint=${sprintIdStr}`,
     );
   } catch (error) {
-    console.error("fetchSprintReport error:", error);
-    throw error;
+    throw new Error(
+      `fetchSprintReport failed for board=${boardId} sprint=${sprintIdStr}`,
+      { cause: error },
+    );
   }
 }
 
@@ -377,10 +370,8 @@ export async function fetchBoardBacklog(
     if (response.status === 400 || response.status === 404) {
       return { startAt: 0, maxResults: 0, total: 0, issues: [] };
     }
-    console.error(`Failed: Backlog for Board Id "${payload.boardId}"`);
-    throw new Error(`Failed for Board Id "${payload.boardId}"`);
+    throw new Error(`Failed: Backlog for Board Id "${payload.boardId}"`);
   } catch (error) {
-    console.error(error);
-    throw new Error(`Failed for Board Id "${payload.boardId}"`);
+    throw new Error(`Failed: Backlog for Board Id "${payload.boardId}"`, { cause: error });
   }
 }

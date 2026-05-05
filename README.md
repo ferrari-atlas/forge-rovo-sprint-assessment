@@ -177,4 +177,5 @@ forge install --non-interactive --site yoursite.atlassian.net --product jira --e
 - **Backlog removal + re-add**: Removing a work item to backlog and re-adding resets the sprint trail.
 - **Changelog cap**: `expand=changelog` returns up to ~100 entries per work item. Older entries may be truncated.
 - **Has-estimate inference**: Work items estimated at creation time (no changelog entry) are not detected as having an estimate.
+- **Velocity sprint history cap**: The closed sprint list API returns at most 50 sprints (oldest first, no reverse ordering). On boards with more than 50 closed sprints, the velocity signal may be computed from older sprints rather than the 3 most recent.
 - **Velocity rule logic**: Only evaluates over commitment in a sprint, does not fail for undercommitment, both issue count and story point (if applicable) needd to pass for rule to pass.
